@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Relatório de Missão - Golden Age RPG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* --- TEMA VISUAL (Padrão JJK) --- */
+    :root {
+      --bg: #101118;
+      --panel: #1b1d29;
+      --input-bg: #0c0d13;
+      --border: #2a2d3d;
+      --accent: #6D20C5;
+      --accent-hover: #8a40e3;
+      --text: #e0e0e0;
+      --text-dim: #a0a0a0;
+      --success: #20c56d;
+      --danger: #c52020;
+      --warn: #e08f2f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 20px;
+    }
+    h1 { color: var(--accent); font-weight: 900; font-size: 2.2em; margin-bottom: 10px; }
+    p { color: var(--text-dim); }
+
+    /* --- Containers --- */
+    .section-box {
+      background-color: var(--panel);
+      border: 1px solid var(--border);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 25px;
+    }
+    .section-title {
+      color: var(--accent);
+      margin-bottom: 15px;
+      font-size: 1.2em;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+    }
+
+    /* --- Formulários --- */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .form-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+    .form-group label { font-size: 0.85em; color: var(--text-dim); margin-bottom: 5px; font-weight: 700; }
+    
+    input[type="text"], input[type="number"], select, textarea {
+      background-color: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px;
+      border-radius: 4px;
+      font-family: 'Roboto', sans-serif;
+      width: 100%;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* --- Lista de Jogadores (Preview) --- */
+    .player-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .player-card {
+      background-color: var(--input-bg);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--text-dim);
+      border-radius: 6px;
+      padding: 15px;
+      position: relative;
+    }
+    
+    /* Cores da borda baseadas no status */
+    .player-card[data-status="1"] { border-left-color: var(--success); }
+    .player-card[data-status="2"] { border-left-color: var(--warn); }
+    .player-card[data-status="3"] { border-left-color: var(--danger); }
+
+    .player-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .remove-btn {
+      background: transparent;
+      color: var(--danger);
+      border: none;
+      cursor: pointer;
+      font-size: 1.2em;
+      padding: 0 5px;
+    }
+
+    /* --- [NOVO] Estilos do Acordeão (Para funcionar no Preview) --- */
+    .reward-notes-accordion {
+      margin-top: 10px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+    }
+    
+    .reward-notes-toggle {
+      font-size: 0.85em;
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: 700;
+      text-transform: uppercase;
+      user-select: none;
+    }
+    
+    /* Texto do botão antes de abrir */
+    .reward-notes-toggle::after {
+      content: '▼ Ver Notas do Mestre';
+    }
+    
+    /* Texto do botão depois de abrir */
+    .is-open .reward-notes-toggle::after {
+      content: '▲ Esconder Notas';
+      color: var(--text-dim);
+    }
+
+    .reward-notes-content {
+      display: none; /* Escondido por padrão */
+      margin-top: 10px;
+      font-size: 0.9em;
+      color: var(--text);
+      font-style: italic;
+      padding: 10px;
+      background: rgba(0,0,0,0.2);
+      border-radius: 4px;
+    }
+
+    /* Mostra quando tem a classe is-open */
+    .is-open .reward-notes-content {
+      display: block;
+    }
+
+
+    /* --- Botões --- */
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #fff;
+      transition: filter 0.2s;
+    }
+    button:hover { filter: brightness(1.2); }
+    .btn-primary { background-color: var(--accent); width: 100%; }
+    .btn-success { background-color: var(--success); width: 100%; }
+    .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; }
+    .btn-outline:hover { background: rgba(109, 32, 197, 0.1); }
+
+    /* --- Output --- */
+    .output-area { margin-top: 40px; border-top: 2px dashed var(--border); padding-top: 20px; }
+    #output-code {
+      font-family: 'Roboto Mono', monospace;
+      font-size: 0.85em;
+      color: var(--success);
+      height: 150px;
+    }
+
+    /* --- Import --- */
+    .import-btn-small {
+        background: var(--warn); 
+        color: #000; 
+        font-size: 0.8em; 
+        padding: 5px 10px; 
+        margin-bottom: 10px;
+        float: right;
+    }
+    #import-modal {
+        display: none;
+        position: fixed; top:0; left:0; width:100%; height:100%;
+        background: rgba(0,0,0,0.8); z-index: 999;
+        align-items: center; justify-content: center;
+    }
+    .modal-content {
+        background: var(--panel); padding: 20px; border-radius: 8px; width: 90%; max-width: 600px;
+        border: 1px solid var(--border);
+    }
+
+    @media(max-width: 700px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="import-modal">
+    <div class="modal-content">
+        <h3 class="section-title">Importar Relatório Existente</h3>
+        <textarea id="import-code-input" placeholder="Cole o código HTML do relatório aqui..." style="height: 150px; margin-bottom: 15px;"></textarea>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-success" onclick="processImport()">Carregar</button>
+            <button class="btn-outline" onclick="document.getElementById('import-modal').style.display='none'">Cancelar</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>Gerador de Relatório</h1>
+      <p>Avaliação de Missões - Golden Age RPG</p>
+      <button class="import-btn-small" onclick="document.getElementById('import-modal').style.display='flex'">Importar Código</button>
+    </header>
+
+    <div class="section-box">
+      <div class="section-title">1. Dados da Missão</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Mestre Responsável</label>
+          <input type="text" id="gm-name" placeholder="Ex: Ade Mir">
+        </div>
+        <div class="form-group">
+          <label>Local da Missão</label>
+          <input type="text" id="mission-location" placeholder="Ex: Hospital Abandonado">
+        </div>
+        <div class="form-group">
+          <label>Grau da Ameaça</label>
+          <select id="mission-threat">
+            <option value="Grau 4">Grau 4</option>
+            <option value="Grau 3">Grau 3</option>
+            <option value="Grau 2">Grau 2</option>
+            <option value="Grau 1">Grau 1</option>
+            <option value="Grau Especial">Grau Especial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status da Missão</label>
+          <select id="mission-status">
+            <option value="1">Sucesso (Verde)</option>
+            <option value="2">Falha (Vermelho)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Sumário / Resumo do Ocorrido</label>
+        <textarea id="mission-summary" placeholder="Descreva brevemente o que aconteceu na missão..."></textarea>
+      </div>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">2. Recompensas dos Jogadores</div>
+      
+      <div id="players-container" class="player-list">
+        </div>
+
+      <div style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 15px;">
+        <h4>Adicionar Jogador</h4>
+        <div class="form-grid">
+            <div class="form-group"><label>Nome</label><input type="text" id="new-p-name" placeholder="Nome do Personagem"></div>
+            <div class="form-group"><label>Avatar (URL)</label><input type="text" id="new-p-avatar" placeholder="https://..."></div>
+            <div class="form-group"><label>XP Ganho</label><input type="text" id="new-p-xp" placeholder="+100 XP"></div>
+            <div class="form-group">
+                <label>Status Individual</label>
+                <select id="new-p-status">
+                    <option value="1">Aprovado</option>
+                    <option value="2">Reprovado/Falhou</option>
+                    <option value="3">Morto em Operação</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Itens/Ryous Ganhos (Separe por vírgula)</label>
+            <input type="text" id="new-p-items" placeholder="Ex: 500 Ryous, 1x Poção de Cura">
+        </div>
+        <div class="form-group">
+            <label>Notas do Mestre (Avaliação)</label>
+            <textarea id="new-p-notes" placeholder="Escreva sua avaliação sobre o desempenho do jogador..."></textarea>
+        </div>
+        <button class="btn-outline" id="btn-add-player">+ Adicionar Jogador</button>
+      </div>
+    </div>
+
+    <div class="output-area">
+      <h3 style="color: var(--success);">3. Código Final</h3>
+      <textarea id="output-code" readonly></textarea>
+      <div style="margin-top: 10px;">
+        <button class="btn-success" id="btn-copy">Copiar Código HTML</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- DADOS ---
+    let players = [];
+
+    // --- SELETORES ---
+    const gmName = document.getElementById('gm-name');
+    const mLocation = document.getElementById('mission-location');
+    const mThreat = document.getElementById('mission-threat');
+    const mStatus = document.getElementById('mission-status');
+    const mSummary = document.getElementById('mission-summary');
+    
+    const pContainer = document.getElementById('players-container');
+    const outputCode = document.getElementById('output-code');
+    const btnCopy = document.getElementById('btn-copy');
+
+    // Campos de novo jogador
+    const newPName = document.getElementById('new-p-name');
+    const newPAvatar = document.getElementById('new-p-avatar');
+    const newPXp = document.getElementById('new-p-xp');
+    const newPStatus = document.getElementById('new-p-status');
+    const newPItems = document.getElementById('new-p-items');
+    const newPNotes = document.getElementById('new-p-notes');
+    const btnAddPlayer = document.getElementById('btn-add-player');
+
+    // --- FUNÇÕES DE RENDERIZAÇÃO ---
+    function renderPlayers() {
+      pContainer.innerHTML = '';
+      
+      if (players.length === 0) {
+        pContainer.innerHTML = '<div style="text-align:center; color:var(--text-dim);">Nenhum jogador adicionado.</div>';
+        return;
+      }
+
+      players.forEach((p, index) => {
+        const card = document.createElement('div');
+        card.className = 'player-card';
+        card.setAttribute('data-status', p.status);
+        
+        let statusText = "Aprovado";
+        if(p.status == "2") statusText = "Reprovado";
+        if(p.status == "3") statusText = "Morto";
+
+        // Cria o card visual (Preview)
+        // IMPORTANTE: Inclui a estrutura do acordeão para funcionar o teste
+        card.innerHTML = `
+          <div class="player-card-header">
+            <span>${p.name} (${statusText})</span>
+            <button class="remove-btn" onclick="removePlayer(${index})">&times;</button>
+          </div>
+          <div style="font-size: 0.9em; color: var(--text-dim); margin-bottom: 5px;">
+            XP: <span style="color: #fff;">${p.xp}</span> | Itens: ${p.items.length}
+          </div>
+          
+          <div class="reward-notes-accordion">
+             <div class="reward-notes-toggle"></div>
+             <div class="reward-notes-content">${p.notes.replace(/\n/g, '<br>')}</div>
+          </div>
+        `;
+        
+        // Adiciona funcionalidade de clique no acordeão DESTE card
+        const toggleBtn = card.querySelector('.reward-notes-toggle');
+        const accordion = card.querySelector('.reward-notes-accordion');
+        
+        toggleBtn.addEventListener('click', function() {
+            accordion.classList.toggle('is-open');
+        });
+
+        pContainer.appendChild(card);
+      });
+      
+      generateCode();
+    }
+
+    function addPlayer() {
+      const name = newPName.value.trim();
+      if (!name) return alert("Nome do jogador é obrigatório.");
+
+      // Processa lista de itens
+      const itemsRaw = newPItems.value.split(',');
+      const itemsClean = itemsRaw.map(i => i.trim()).filter(i => i.length > 0);
+
+      const newPlayer = {
+        name: name,
+        avatar: newPAvatar.value.trim() || '',
+        xp: newPXp.value.trim() || '+0 XP',
+        status: newPStatus.value,
+        items: itemsClean.length > 0 ? itemsClean : ['Nenhum'],
+        notes: newPNotes.value.trim()
+      };
+
+      players.push(newPlayer);
+      
+      // Limpa campos
+      newPName.value = '';
+      newPAvatar.value = '';
+      newPXp.value = '';
+      newPItems.value = '';
+      newPNotes.value = '';
+      newPName.focus();
+
+      renderPlayers();
+    }
+
+    window.removePlayer = function(index) {
+      if(confirm("Remover este jogador?")) {
+        players.splice(index, 1);
+        renderPlayers();
+      }
+    }
+
+    // --- GERADOR ---
+    function generateCode() {
+        const data = {
+            gm: gmName.value,
+            loc: mLocation.value,
+            threat: mThreat.value,
+            status: mStatus.value,
+            summary: mSummary.value.replace(/\n/g, '<br>')
+        };
+
+        // Gera HTML dos cards
+        let cardsHTML = '';
+        players.forEach(p => {
+            let itemsHTML = '';
+            p.items.forEach(i => { itemsHTML += `<li>• ${i}</li>`; });
+            
+            const notesFormatted = p.notes.replace(/\n/g, '<br>');
+
+            cardsHTML += `<div class="reward-card" data-status="${p.status}"><div class="reward-avatar"><img src="${p.avatar}" alt="Avatar"></div><div class="reward-content"><div class="reward-player-name">${p.name}</div><div class="reward-main-data"><div class="reward-xp-value">${p.xp}</div><ul class="reward-item-list">${itemsHTML}</ul></div><div class="reward-notes-accordion"><div class="reward-notes-toggle"></div><div class="reward-notes-content">${notesFormatted}</div></div></div><div class="reward-stamp"></div></div>`;
+        });
+
+        const finalHTML = `<link href="https://gaaaaaaaaabs.github.io/goldenagerepositor.io/relatorio.css" rel="stylesheet" type="text/css"><div class="report-container" data-mission-status="${data.status}"><div class="report-header"><div class="report-header-main"><h1 class="report-title"></h1><div class="report-primary-status"></div><div class="report-metadata"><div class="report-metadata-item mestre"><span class="label"></span><span class="value">${data.gm}</span></div><div class="report-metadata-item local"><span class="label"></span><span class="value">${data.loc}</span></div><div class="report-metadata-item ameaca"><span class="label"></span><span class="value threat">${data.threat}</span></div></div></div><div class="report-wax-seal"></div></div><div class="report-body"><section id="sumario"><h2></h2><p class="lead">${data.summary}</p></section><section id="recompensas"><h2></h2><p class="lead"></p><div class="reward-grid">${cardsHTML}</div></section><div class="report-footer"><div class="signature-line">${data.gm}</div></div></div></div>`;
+
+        outputCode.value = finalHTML;
+    }
+
+    // --- IMPORTAÇÃO ---
+    window.processImport = function() {
+        const html = document.getElementById('import-code-input').value;
+        if(!html) return alert("Cole o código primeiro.");
+
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            // Dados da Missão
+            const container = doc.querySelector('.report-container');
+            if(container) mStatus.value = container.getAttribute('data-mission-status') || '1';
+            
+            gmName.value = doc.querySelector('.report-metadata-item.mestre .value')?.textContent || '';
+            mLocation.value = doc.querySelector('.report-metadata-item.local .value')?.textContent || '';
+            mThreat.value = doc.querySelector('.report-metadata-item.ameaca .value')?.textContent || 'Grau 4';
+            
+            // Reverte BR para Newline no sumário
+            const summaryHtml = doc.querySelector('#sumario .lead')?.innerHTML || '';
+            mSummary.value = summaryHtml.replace(/<br\s*\/?>/gi, '\n');
+
+            // Jogadores
+            players = [];
+            const cardEls = doc.querySelectorAll('.reward-card');
+            cardEls.forEach(card => {
+                const pItems = [];
+                card.querySelectorAll('.reward-item-list li').forEach(li => {
+                    pItems.push(li.textContent.replace('• ', '').trim());
+                });
+                
+                const pNotesHtml = card.querySelector('.reward-notes-content')?.innerHTML || '';
+
+                players.push({
+                    status: card.getAttribute('data-status') || '1',
+                    avatar: card.querySelector('.reward-avatar img')?.src || '',
+                    name: card.querySelector('.reward-player-name')?.textContent || '',
+                    xp: card.querySelector('.reward-xp-value')?.textContent || '',
+                    items: pItems,
+                    notes: pNotesHtml.replace(/<br\s*\/?>/gi, '\n')
+                });
+            });
+
+            renderPlayers();
+            document.getElementById('import-modal').style.display = 'none';
+            alert("Relatório carregado!");
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao ler o código. Verifique se é um HTML de relatório válido.");
+        }
+    }
+
+    // Listeners
+    btnAddPlayer.addEventListener('click', addPlayer);
+    btnCopy.addEventListener('click', () => {
+      outputCode.select();
+      document.execCommand('copy');
+      const old = btnCopy.textContent;
+      btnCopy.textContent = "Copiado!";
+      setTimeout(() => btnCopy.textContent = old, 2000);
+    });
+
+    // Atualização em tempo real dos dados da missão
+    [gmName, mLocation, mThreat, mStatus, mSummary].forEach(el => {
+        el.addEventListener('input', generateCode);
+    });
+
+    // Iniciar
+    generateCode();
+
+  </script>
+</body>
+</html>
