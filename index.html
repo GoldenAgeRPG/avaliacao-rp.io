@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gerador de Relatório de Missão - Golden Age RPG</title>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-  
+   
   <style>
     /* --- TEMA VISUAL (Padrão JJK) --- */
     :root {
@@ -20,6 +20,7 @@
       --success: #20c56d;
       --danger: #c52020;
       --warn: #e08f2f;
+      --info: #2f8fe0;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -113,16 +114,27 @@
       font-weight: 700;
     }
 
-    .remove-btn {
+    .card-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .action-btn {
       background: transparent;
-      color: var(--danger);
       border: none;
       cursor: pointer;
       font-size: 1.2em;
       padding: 0 5px;
+      transition: color 0.2s;
     }
 
-    /* --- [NOVO] Estilos do Acordeão (Para funcionar no Preview) --- */
+    .remove-btn { color: var(--danger); }
+    .remove-btn:hover { color: #ff5555; }
+
+    .edit-btn { color: var(--info); }
+    .edit-btn:hover { color: #5fb1ff; }
+
+    /* --- Estilos do Acordeão --- */
     .reward-notes-accordion {
       margin-top: 10px;
       border-top: 1px solid var(--border);
@@ -138,19 +150,17 @@
       user-select: none;
     }
     
-    /* Texto do botão antes de abrir */
     .reward-notes-toggle::after {
       content: '▼ Ver Notas do Mestre';
     }
     
-    /* Texto do botão depois de abrir */
     .is-open .reward-notes-toggle::after {
       content: '▲ Esconder Notas';
       color: var(--text-dim);
     }
 
     .reward-notes-content {
-      display: none; /* Escondido por padrão */
+      display: none;
       margin-top: 10px;
       font-size: 0.9em;
       color: var(--text);
@@ -160,7 +170,6 @@
       border-radius: 4px;
     }
 
-    /* Mostra quando tem a classe is-open */
     .is-open .reward-notes-content {
       display: block;
     }
@@ -254,6 +263,7 @@
             <option value="Grau 3">Grau 3</option>
             <option value="Grau 2">Grau 2</option>
             <option value="Grau 1">Grau 1</option>
+            <option value="Grau Semi-Especial">Grau Semi-Especial</option>
             <option value="Grau Especial">Grau Especial</option>
           </select>
         </div>
@@ -278,7 +288,7 @@
         </div>
 
       <div style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 15px;">
-        <h4>Adicionar Jogador</h4>
+        <h4>Adicionar / Editar Jogador</h4>
         <div class="form-grid">
             <div class="form-group"><label>Nome</label><input type="text" id="new-p-name" placeholder="Nome do Personagem"></div>
             <div class="form-group"><label>Avatar (URL)</label><input type="text" id="new-p-avatar" placeholder="https://..."></div>
@@ -357,11 +367,13 @@
         if(p.status == "3") statusText = "Morto";
 
         // Cria o card visual (Preview)
-        // IMPORTANTE: Inclui a estrutura do acordeão para funcionar o teste
         card.innerHTML = `
           <div class="player-card-header">
             <span>${p.name} (${statusText})</span>
-            <button class="remove-btn" onclick="removePlayer(${index})">&times;</button>
+            <div class="card-actions">
+                <button class="action-btn edit-btn" onclick="editPlayer(${index})" title="Editar">✎</button>
+                <button class="action-btn remove-btn" onclick="removePlayer(${index})" title="Remover">&times;</button>
+            </div>
           </div>
           <div style="font-size: 0.9em; color: var(--text-dim); margin-bottom: 5px;">
             XP: <span style="color: #fff;">${p.xp}</span> | Itens: ${p.items.length}
@@ -373,7 +385,6 @@
           </div>
         `;
         
-        // Adiciona funcionalidade de clique no acordeão DESTE card
         const toggleBtn = card.querySelector('.reward-notes-toggle');
         const accordion = card.querySelector('.reward-notes-accordion');
         
@@ -424,6 +435,26 @@
       }
     }
 
+    // --- FUNÇÃO DE EDIÇÃO ---
+    window.editPlayer = function(index) {
+        const p = players[index];
+
+        newPName.value = p.name;
+        newPAvatar.value = p.avatar;
+        newPXp.value = p.xp;
+        newPStatus.value = p.status;
+        newPItems.value = p.items.join(', ');
+        newPNotes.value = p.notes;
+
+        players.splice(index, 1);
+        renderPlayers();
+
+        newPName.focus();
+        
+        btnAddPlayer.innerText = "Salvar Alterações";
+        setTimeout(() => { btnAddPlayer.innerText = "+ Adicionar Jogador"; }, 3000);
+    }
+
     // --- GERADOR ---
     function generateCode() {
         const data = {
@@ -434,7 +465,6 @@
             summary: mSummary.value.replace(/\n/g, '<br>')
         };
 
-        // Gera HTML dos cards
         let cardsHTML = '';
         players.forEach(p => {
             let itemsHTML = '';
@@ -459,7 +489,6 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             
-            // Dados da Missão
             const container = doc.querySelector('.report-container');
             if(container) mStatus.value = container.getAttribute('data-mission-status') || '1';
             
@@ -467,11 +496,9 @@
             mLocation.value = doc.querySelector('.report-metadata-item.local .value')?.textContent || '';
             mThreat.value = doc.querySelector('.report-metadata-item.ameaca .value')?.textContent || 'Grau 4';
             
-            // Reverte BR para Newline no sumário
             const summaryHtml = doc.querySelector('#sumario .lead')?.innerHTML || '';
             mSummary.value = summaryHtml.replace(/<br\s*\/?>/gi, '\n');
 
-            // Jogadores
             players = [];
             const cardEls = doc.querySelectorAll('.reward-card');
             cardEls.forEach(card => {
@@ -511,12 +538,10 @@
       setTimeout(() => btnCopy.textContent = old, 2000);
     });
 
-    // Atualização em tempo real dos dados da missão
     [gmName, mLocation, mThreat, mStatus, mSummary].forEach(el => {
         el.addEventListener('input', generateCode);
     });
 
-    // Iniciar
     generateCode();
 
   </script>
